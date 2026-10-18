@@ -1,9 +1,9 @@
 /* 바이올린 마스터 첫 화면 · 오프라인 저장소
-   첫 화면과 앱 타일 그림만 담아요. 각 앱(score/, tuner/, tempo/)은 자기 폴더의 sw.js가 따로 맡아요.
+   첫 화면과 앱 타일 그림만 담아요. 각 앱(score/, tuner/, tempo/, record/)은 자기 폴더의 sw.js가 따로 맡아요.
    index.html을 고쳐 올릴 때는 아래 VERSION 숫자를 하나 올려 주세요. */
-const VERSION = 'vm-home-1';
-const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/apple-touch-icon.png', 'icons/record-192.png',
-  'score/icons/icon-192.png', 'tuner/icons/icon-192.png', 'tempo/icons/icon-192.png'];
+const VERSION = 'vm-home-3';
+const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/apple-touch-icon.png', 
+  'score/icons/icon-192.png', 'tuner/icons/icon-192.png', 'tempo/icons/icon-192.png', 'record/icons/icon-192.png'];
 const APPS = ['score/', 'tuner/', 'tempo/', 'record/'];
 const base = new URL('./', location).pathname;
 const mine = url => url.origin === location.origin && url.pathname.startsWith(base) &&

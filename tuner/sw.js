@@ -1,7 +1,7 @@
 /* 바이올린 마스터 튜너 · 오프라인 저장소
    앱 화면과 아이콘, 글꼴을 이 기기에 담아 두어 인터넷 없이도 열리게 해요.
    index.html을 고쳐 올릴 때는 아래 VERSION 숫자를 하나 올려 주세요. */
-const VERSION = 'vm-tuner-2';
+const VERSION = 'vm-tuner-3';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 const RUNTIME_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 

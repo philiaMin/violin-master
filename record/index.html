@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>녹음 · Violin Master</title>
+<meta name="description" content="바이올린 마스터 시리즈의 녹음 앱">
+<meta name="theme-color" content="#18243d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="녹음">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&family=Noto+Serif+KR:wght@600;700&family=Outfit:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: 한 열(최대 560px). 위에 로고줄과 큰 제목, 녹음 카드(곡 고르기, 물결, 시간, 큰 빨간 단추),
+   그 아래 녹음 목록(날짜별). 목록의 한 줄을 누르면 그 자리에서 펼쳐져 재생·속도·음정 분석·이름 바꾸기. 강조색은 미드나잇 블루 하나, 녹음 중 표시만 빨강. */
+:root {
+  --bg: #f4efe8; --surface: #fffcf8; --surface-2: #f1e8dc; --line: #e2d6c7;
+  --ink: #2b1f16; --muted: #7c6b5c;
+  --accent: #34507f; --accent-ink: #f6ecdc; --accent-soft: #dfe5f0; --glow: rgba(52,80,127,.28);
+  --rec: #c2412f; --good: #3d8a55; --warn: #c08a1e; --bad: #c2412f;
+  --shadow: 0 1px 2px rgba(62,36,18,.06), 0 10px 28px rgba(62,36,18,.08); --edge: transparent;
+  --f-body: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --f-title: "Noto Serif KR", "Nanum Myeongjo", Georgia, serif;
+  --f-num: "Outfit", "Noto Sans KR", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #14100d; --surface: #1d1814; --surface-2: #29221c; --line: #382e26; --ink: #f2e9df; --muted: #a8988a;
+  --accent: #93a9d6; --accent-ink: #101a2e; --accent-soft: #1e2738; --glow: rgba(147,169,214,.22);
+  --rec: #e46b57; --good: #6fbf86; --warn: #e0b04a; --bad: #e46b57;
+  --shadow: none; --edge: var(--line); color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #14100d; --surface: #1d1814; --surface-2: #29221c; --line: #382e26; --ink: #f2e9df; --muted: #a8988a;
+  --accent: #93a9d6; --accent-ink: #101a2e; --accent-soft: #1e2738; --glow: rgba(147,169,214,.22);
+  --rec: #e46b57; --good: #6fbf86; --warn: #e0b04a; --bad: #e46b57;
+  --shadow: none; --edge: var(--line); color-scheme: dark }
+* { box-sizing: border-box }
+html, body { margin: 0; background: var(--bg) }
+body { color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent }
+[hidden] { display: none !important }
+button, select, input { font: inherit; color: inherit }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.wrap { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(28px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)) }
+.top { padding-top: 8px; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px }
+.top > div { min-width: 0 }
+.lockup { display: flex; align-items: center; gap: 8px; margin: 0 0 2px; color: var(--accent); white-space: nowrap; text-decoration: none }
+.lockup svg { width: 10px; height: 20px }
+.lockup .wm { font: 600 11.5px Georgia, "Times New Roman", serif; letter-spacing: .3em }
+.lockup .lk-app { font-size: 12px; font-weight: 700; color: var(--muted); padding-left: 9px; border-left: 1px solid var(--line) }
+h1 { margin: 0; font-family: var(--f-title); font-size: 34px; font-weight: 700; letter-spacing: -.01em; line-height: 1.2 }
+h2 { margin: 0; font-family: var(--f-title); font-size: 17px; font-weight: 700 }
+.card { background: var(--surface); border: 1px solid var(--edge); border-radius: 22px; padding: 18px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 14px; min-width: 0 }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap }
+.spacer { flex: 1 }
+.note { font-size: 13px; color: var(--muted); margin: 0 }
+.btn { border: 0; background: var(--surface-2); font-weight: 700; font-size: 14px; padding: 0 16px; height: 40px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; text-decoration: none; color: var(--ink) }
+.btn.primary { background: var(--accent); color: var(--accent-ink) }
+.btn.danger { color: var(--bad) }
+.btn.armed { background: var(--bad); color: #fff }
+.btn svg { width: 18px; height: 18px }
+.iconbtn { width: 42px; height: 42px; border-radius: 50%; border: 0; background: var(--surface); box-shadow: var(--shadow); display: grid; place-items: center; cursor: pointer; color: var(--ink) }
+.iconbtn svg { width: 20px; height: 20px }
+.sel { display: flex; align-items: center; gap: 10px; background: var(--surface-2); border-radius: 14px; padding: 0 12px; height: 46px }
+.sel span { font-size: 12px; color: var(--muted); font-weight: 700; white-space: nowrap }
+.sel select { flex: 1; min-width: 0; border: 0; background: transparent; height: 100%; font-weight: 700; appearance: none; -webkit-appearance: none; cursor: pointer }
+.sel svg { width: 16px; height: 16px; color: var(--muted); pointer-events: none }
+
+/* 녹음 카드 */
+.rec { align-items: stretch }
+.wave { width: 100%; height: 96px; display: block; border-radius: 14px; background: var(--surface-2) }
+.clock { text-align: center; font-family: var(--f-num); font-size: 44px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1; letter-spacing: -.01em }
+.clock small { display: block; font-family: var(--f-body); font-size: 13px; color: var(--muted); font-weight: 500; letter-spacing: 0; margin-top: 8px; min-height: 20px }
+.clock small.warn { color: var(--bad); font-weight: 700 }
+.recbtn { align-self: center; width: 84px; height: 84px; border-radius: 50%; border: 4px solid var(--line); background: var(--surface); display: grid; place-items: center; cursor: pointer; padding: 0 }
+.recbtn i { display: block; width: 58px; height: 58px; border-radius: 50%; background: var(--rec); transition: all .2s }
+.recbtn.live { border-color: var(--rec) }
+.recbtn.live i { width: 30px; height: 30px; border-radius: 8px }
+.recbtn:disabled { opacity: .5 }
+.live-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--rec); margin-right: 6px; animation: blink 1s infinite }
+@keyframes blink { 50% { opacity: .2 } }
+
+/* 목록 */
+.listh { display: flex; align-items: center; gap: 10px; flex-wrap: wrap }
+.chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; max-width: 100% }
+.chip { border: 0; height: 32px; padding: 0 12px; border-radius: 999px; background: var(--surface-2); color: var(--muted); font-weight: 700; font-size: 13px; cursor: pointer; white-space: nowrap }
+.chip.on { background: var(--accent); color: var(--accent-ink) }
+.day { font-size: 12px; font-weight: 700; color: var(--muted); margin: 6px 0 2px; letter-spacing: .02em }
+.recs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column }
+.recs > li { border-bottom: 1px solid var(--line) }
+.recs > li:last-child { border-bottom: 0 }
+.item { display: flex; align-items: center; gap: 12px; padding: 11px 0 }
+.pbtn { width: 40px; height: 40px; flex: none; border-radius: 50%; border: 0; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; cursor: pointer }
+.pbtn svg { width: 18px; height: 18px }
+.item .t { flex: 1; min-width: 0; background: none; border: 0; padding: 0; text-align: left; cursor: pointer }
+.item .t b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 700 }
+.item .t small { color: var(--muted); font-size: 12px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.score-tag { color: var(--accent); font-weight: 700 }
+.star { width: 34px; height: 34px; flex: none; border: 0; background: none; cursor: pointer; color: var(--line); display: grid; place-items: center }
+.star.on { color: #d29a2e }
+.star svg { width: 20px; height: 20px }
+.detail { padding: 2px 0 16px; display: flex; flex-direction: column; gap: 12px }
+.seek { display: flex; align-items: center; gap: 10px; font-family: var(--f-num); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums }
+.seek input { flex: 1; accent-color: var(--accent) }
+.ov { width: 100%; height: 56px; display: block; cursor: pointer }
+.graph { width: 100%; height: 190px; display: block; cursor: pointer }
+.seg { display: inline-flex; background: var(--surface-2); border-radius: 999px; padding: 3px; gap: 2px }
+.seg button { border: 0; background: transparent; height: 32px; padding: 0 11px; border-radius: 999px; font-weight: 700; font-size: 13px; color: var(--muted); cursor: pointer; font-family: var(--f-num) }
+.seg button.on { background: var(--surface); color: var(--ink); box-shadow: 0 1px 4px rgba(0,0,0,.12) }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px }
+.stat { background: var(--surface-2); border-radius: 14px; padding: 10px 12px }
+.stat span { display: block; font-size: 11.5px; color: var(--muted); font-weight: 700 }
+.stat b { font-family: var(--f-num); font-size: 20px; font-weight: 600 }
+.tinput { height: 42px; border-radius: 12px; border: 0; background: var(--surface-2); padding: 0 12px; width: 100%; font-weight: 700 }
+.empty { text-align: center; padding: 26px 10px; color: var(--muted) }
+.empty b { display: block; color: var(--ink); font-family: var(--f-title); font-size: 17px; margin-bottom: 4px }
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%) translateY(10px); background: #2b1f16; color: #fffaf3; padding: 11px 18px; border-radius: 14px; font-size: 14px; opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; max-width: calc(100vw - 32px); text-align: center; z-index: 9 }
+.toast.show { opacity: 1; transform: translateX(-50%) }
+.family { display: flex; justify-content: center; gap: 18px; font-size: 13px; color: var(--muted); flex-wrap: wrap }
+.family a { color: inherit; text-decoration: none; display: inline-flex; align-items: center; gap: 6px }
+.family img { width: 22px; height: 22px; border-radius: 5px }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="fhole" viewBox="0 0 24 48">
+    <path d="M16.2 8.2C12.6 13.6 16.6 19.4 12 24s-.6 10.6-4.2 15.8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
+    <circle cx="16.6" cy="6" r="3" fill="currentColor"/><circle cx="7.4" cy="42" r="3" fill="currentColor"/>
+    <path d="M8.4 22.6l-3 1.2M15.6 25.4l3-1.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6.5" y="5.5" width="4" height="13" rx="1.2" fill="currentColor"/><rect x="13.5" y="5.5" width="4" height="13" rx="1.2" fill="currentColor"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z" fill="currentColor"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 10l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-save" viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M5 19.5h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M6 3.5h8l4 4v13H6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 10.5v6M9 13.5h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 18c3-9 5-9 7-4s4 5 9-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+
+<main class="wrap">
+  <header class="top">
+    <div>
+      <a class="lockup" href="../"><svg aria-hidden="true"><use href="#fhole"/></svg><span class="wm">VIOLIN MASTER</span><span class="lk-app">녹음</span></a>
+      <h1>녹음</h1>
+    </div>
+    <button class="iconbtn" id="importBtn" aria-label="녹음 파일 불러오기"><svg><use href="#i-file"/></svg></button>
+    <input type="file" id="fileIn" accept="audio/*,video/mp4,.m4a,.mp3,.wav,.webm" hidden>
+  </header>
+
+  <section class="card rec">
+    <label class="sel"><span>무슨 곡?</span><select id="scoreSel"><option value="">곡 고르지 않음</option></select><svg><use href="#i-down"/></svg></label>
+    <canvas class="wave" id="wave" aria-hidden="true"></canvas>
+    <div class="clock"><span id="clock">00:00</span><small id="recHint">빨간 단추를 누르면 녹음이 시작돼요</small></div>
+    <button class="recbtn" id="recBtn" aria-label="녹음 시작"><i></i></button>
+  </section>
+
+  <section class="card">
+    <div class="listh"><h2>녹음 목록</h2><span class="spacer"></span><div class="chips" id="chips"></div></div>
+    <div id="list"></div>
+    <div class="empty" id="empty" hidden><b>아직 녹음이 없어요</b>연주를 녹음해 두면 여기서 다시 듣고 음정을 살펴볼 수 있어요.</div>
+    <p class="note" id="storage"></p>
+  </section>
+
+  <nav class="family" aria-label="시리즈 앱">
+    <a href="../score/"><img src="../score/icons/icon-192.png" alt="">악보</a>
+    <a href="../tuner/"><img src="../tuner/icons/icon-192.png" alt="">튜너</a>
+    <a href="../tempo/"><img src="../tempo/icons/icon-192.png" alt="">메트로놈</a>
+  </nav>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('vm:' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('vm:' + k, JSON.stringify(v)); } catch {} }
+};
+let toastT;
+function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2600); }
+const fmt = sec => { sec = Math.max(0, Math.floor(sec || 0)); const h = Math.floor(sec / 3600), m = Math.floor(sec / 60) % 60, s = sec % 60; return (h ? h + ':' + String(m).padStart(2, '0') : String(m).padStart(2, '0')) + ':' + String(s).padStart(2, '0'); };
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+/* 아이폰은 무음(벨소리) 스위치가 켜져 있으면 웹 소리를 꺼 버려요. 녹음과 재생을 함께 쓰는 앱이라고 알려서 무음 모드에서도 들리게 해요. */
+let ctx = null;
+function ac() {
+  if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+  try { if (navigator.audioSession) navigator.audioSession.type = 'play-and-record'; } catch {}
+  if (ctx.state !== 'running') ctx.resume().catch(() => {});
+  return ctx;
+}
+
+/* ---------- 저장소: 녹음은 이 기기의 'vm-recordings'에 보관 ----------
+   recs: { id, title, scoreId, scoreTitle, at, dur, type, size, fav, data(ArrayBuffer), pitch? } */
+const DB = {
+  db: null,
+  open() {
+    return this.db ||= new Promise((res, rej) => {
+      const r = indexedDB.open('vm-recordings', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('recs', { keyPath: 'id' });
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    });
+  },
+  async tx(mode, fn) {
+    const d = await this.open();
+    return new Promise((res, rej) => { const t = d.transaction('recs', mode), q = fn(t.objectStore('recs')); t.oncomplete = () => res(q?.result); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error); });
+  },
+  get: id => DB.tx('readonly', s => s.get(id)),
+  put: v => DB.tx('readwrite', s => s.put(v)),
+  del: id => DB.tx('readwrite', s => s.delete(id)),
+  // 목록에는 소리 데이터 없이 정보만
+  async list() {
+    const d = await this.open();
+    return new Promise((res, rej) => {
+      const out = [], t = d.transaction('recs'), c = t.objectStore('recs').openCursor();
+      c.onsuccess = () => { const cur = c.result; if (!cur) return; const { data, ...meta } = cur.value; out.push(meta); cur.continue(); };
+      t.oncomplete = () => res(out); t.onerror = () => rej(t.error);
+    });
+  }
+};
+
+/* 악보 앱의 곡 목록 (같은 주소라 바로 읽어요). 없으면 빈 목록. */
+function readScores() {
+  return new Promise(res => {
+    let r; try { r = indexedDB.open('violin-sheets'); } catch { return res([]); }
+    r.onupgradeneeded = () => r.transaction.abort();
+    r.onerror = () => res([]);
+    r.onsuccess = () => {
+      const d = r.result; if (!d.objectStoreNames.contains('scores')) { d.close(); return res([]); }
+      const g = d.transaction('scores').objectStore('scores').getAll();
+      g.onsuccess = () => { d.close(); res(g.result); }; g.onerror = () => { d.close(); res([]); };
+    };
+  });
+}
+
+/* 예전 연습 앱(같은 주소)에 녹음이 남아 있으면 한 번만 옮겨 와요 */
+function importOld() {
+  if (store.get('rec-imported', false)) return Promise.resolve(0);
+  return new Promise(res => {
+    let r; try { r = indexedDB.open('violin-master'); } catch { return res(0); }
+    r.onupgradeneeded = () => r.transaction.abort();
+    r.onerror = () => { store.set('rec-imported', true); res(0); };
+    r.onsuccess = () => {
+      const d = r.result; if (!d.objectStoreNames.contains('recs')) { d.close(); store.set('rec-imported', true); return res(0); }
+      const g = d.transaction('recs').objectStore('recs').getAll();
+      g.onsuccess = async () => {
+        d.close(); let n = 0;
+        for (const o of g.result) {
+          if (!(o.blob instanceof Blob)) continue;
+          await DB.put({ id: 'old-' + o.id, title: o.title || '예전 녹음', scoreId: '', scoreTitle: '', at: o.at || Date.now(), dur: o.seconds || 0, type: o.blob.type || 'audio/webm', size: o.blob.size, fav: false, data: await o.blob.arrayBuffer() });
+          n++;
+        }
+        store.set('rec-imported', true); res(n);
+      };
+      g.onerror = () => { d.close(); res(0); };
+    };
+  });
+}
+
+/* ---------- 곡 고르기 ---------- */
+const q = new URLSearchParams(location.search);
+let scores = [];
+async function loadScores() {
+  scores = (await readScores()).sort((a, b) => (b.openedAt || 0) - (a.openedAt || 0));
+  const want = q.get('score') || store.get('rec-score', '');
+  $('scoreSel').innerHTML = '<option value="">곡 고르지 않음</option>' + scores.map(s => `<option value="${esc(s.id)}">${esc(s.title)}${s.composer ? ' · ' + esc(s.composer) : ''}</option>`).join('');
+  if (want && scores.some(s => s.id === want)) $('scoreSel').value = want;
+}
+$('scoreSel').onchange = () => store.set('rec-score', $('scoreSel').value);
+
+/* ---------- 녹음 ---------- */
+const MAX_SEC = 30 * 60;
+let mr = null, chunks = [], stream = null, t0 = 0, tick = 0, an = null, wake = null, peaks = [];
+function pickMime() {
+  for (const m of ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'])
+    if (window.MediaRecorder?.isTypeSupported?.(m)) return m;
+  return '';
+}
+async function startRec() {
+  if (!window.MediaRecorder || !navigator.mediaDevices?.getUserMedia) { toast('이 브라우저는 녹음을 못 해요. 휴대폰 녹음 앱으로 녹음한 뒤 오른쪽 위 파일 단추로 불러오세요.'); return; }
+  const c = ac();
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }); }
+  catch { setHint('마이크를 쓸 수 없어요. 주소창 옆 설정에서 마이크를 허용해 주세요', true); return; }
+  stopPlayback();
+  const mime = pickMime();
+  try { mr = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined); }
+  catch { mr = new MediaRecorder(stream); }
+  chunks = []; peaks = [];
+  mr.ondataavailable = e => { if (e.data?.size) chunks.push(e.data); };
+  mr.onstop = () => finishRec(mime);
+  an = c.createAnalyser(); an.fftSize = 2048; c.createMediaStreamSource(stream).connect(an);
+  t0 = performance.now(); mr.start(1000);
+  $('recBtn').classList.add('live'); $('recBtn').setAttribute('aria-label', '녹음 멈추기');
+  $('scoreSel').disabled = true;
+  tick = setInterval(drawLive, 50);
+  try { wake = await navigator.wakeLock?.request('screen'); } catch {}
+}
+function stopRec() { if (mr && mr.state !== 'inactive') mr.stop(); }
+async function finishRec(mime) {
+  clearInterval(tick); stream?.getTracks().forEach(t => t.stop()); stream = null;
+  try { wake?.release(); } catch {} wake = null;
+  $('recBtn').classList.remove('live'); $('recBtn').setAttribute('aria-label', '녹음 시작'); $('scoreSel').disabled = false;
+  const dur = (performance.now() - t0) / 1000;
+  const type = (mr.mimeType || mime || 'audio/webm').split(';')[0];
+  const blob = new Blob(chunks, { type }); mr = null;
+  if (dur < 1 || !blob.size) { setHint('너무 짧아서 저장하지 않았어요'); return; }
+  const s = scores.find(x => x.id === $('scoreSel').value);
+  const rec = { id: uid(), title: s ? s.title : defaultTitle(), scoreId: s?.id || '', scoreTitle: s?.title || '', at: Date.now(), dur, type, size: blob.size, fav: false, data: await blob.arrayBuffer() };
+  try { await DB.put(rec); }
+  catch (e) { console.error(e); toast('저장 공간이 부족해서 저장하지 못했어요'); return; }
+  setHint(`저장했어요 · ${fmt(dur)}`);
+  open = rec.id; await render();
+  requestPersist();
+}
+const defaultTitle = () => { const d = new Date(); return `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')} 연습`; };
+function setHint(t, warn) { const h = $('recHint'); h.textContent = t; h.classList.toggle('warn', !!warn); }
+$('recBtn').onclick = () => (mr ? stopRec() : startRec());
+
+// 녹음 중: 흘러가는 소리 물결과 시간
+const buf = new Float32Array(2048);
+function drawLive() {
+  const sec = (performance.now() - t0) / 1000;
+  $('clock').textContent = fmt(sec);
+  an.getFloatTimeDomainData(buf); let p = 0; for (const v of buf) p = Math.max(p, Math.abs(v));
+  peaks.push(p);
+  setHint(p > .97 ? '소리가 너무 커요. 휴대폰을 조금 멀리 두세요' : (sec > MAX_SEC - 60 ? `${fmt(MAX_SEC - sec)} 뒤에 저절로 멈춰요` : '녹음 중'), p > .97);
+  if (p <= .97 && sec <= MAX_SEC - 60) $('recHint').innerHTML = '<span class="live-dot"></span>녹음 중';
+  if (sec >= MAX_SEC) stopRec();
+  drawWave();
+}
+function drawWave() {
+  const cv = $('wave'), w = cv.clientWidth, h = cv.clientHeight, dpr = devicePixelRatio || 1;
+  if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
+  const bar = 3, gap = 2, n = Math.floor(w / (bar + gap)), start = Math.max(0, peaks.length - n);
+  g.fillStyle = mr ? css('--rec') : css('--line');
+  if (!peaks.length) { g.fillRect(0, h / 2 - .5, w, 1); return; }
+  for (let i = start; i < peaks.length; i++) {
+    const a = Math.max(2, Math.min(1, peaks[i] * 1.4) * (h - 12));
+    g.fillRect((i - start) * (bar + gap), (h - a) / 2, bar, a);
+  }
+}
+
+/* ---------- 파일 불러오기 ---------- */
+$('importBtn').onclick = () => $('fileIn').click();
+$('fileIn').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  let dur = 0;
+  try { dur = (await ac().decodeAudioData(await f.arrayBuffer())).duration; } catch {}
+  const type = /^audio\//.test(f.type) ? f.type : /^video\//.test(f.type) ? 'audio/' + f.type.slice(6) : 'audio/mp4';
+  const s = scores.find(x => x.id === $('scoreSel').value);
+  const rec = { id: uid(), title: f.name.replace(/\.[^.]+$/, ''), scoreId: s?.id || '', scoreTitle: s?.title || '', at: f.lastModified || Date.now(), dur, type, size: f.size, fav: false, data: await f.arrayBuffer() };
+  try { await DB.put(rec); open = rec.id; await render(); toast('불러왔어요'); } catch { toast('불러오지 못했어요'); }
+};
+
+/* ---------- 목록 ---------- */
+let all = [], filter = 'all', open = null;
+async function render() {
+  all = (await DB.list()).sort((a, b) => b.at - a.at);
+  const scoreIds = [...new Set(all.filter(r => r.scoreId).map(r => r.scoreId))];
+  const chips = [['all', '전체'], ['fav', '즐겨찾기'], ...scoreIds.slice(0, 6).map(id => [id, all.find(r => r.scoreId === id).scoreTitle])];
+  if (!chips.some(c => c[0] === filter)) filter = 'all';
+  $('chips').innerHTML = all.length ? chips.map(([k, l]) => `<button class="chip${k === filter ? ' on' : ''}" data-f="${esc(k)}">${esc(l)}</button>`).join('') : '';
+  const list = all.filter(r => filter === 'all' || (filter === 'fav' ? r.fav : r.scoreId === filter));
+  $('empty').hidden = all.length > 0;
+  let html = '', last = '';
+  for (const r of list) {
+    const day = dayLabel(r.at);
+    if (day !== last) { if (last) html += '</ul>'; html += `<p class="day">${day}</p><ul class="recs">`; last = day; }
+    const sub = [r.scoreTitle && r.scoreTitle !== r.title ? `<span class="score-tag">${esc(r.scoreTitle)}</span>` : '', fmt(r.dur), r.pitch ? `음정 ±25 안 ${r.pitch.p25}%` : '', timeOf(r.at)].filter(Boolean).join(' · ');
+    html += `<li data-id="${esc(r.id)}"><div class="item">
+      <button class="pbtn" data-play aria-label="${esc(r.title)} 재생"><svg><use href="#i-${playingId === r.id && !player.paused ? 'pause' : 'play'}"/></svg></button>
+      <button class="t" data-open aria-expanded="${open === r.id}"><b>${esc(r.title)}</b><small>${sub}</small></button>
+      <button class="star${r.fav ? ' on' : ''}" data-fav aria-label="즐겨찾기"><svg><use href="#i-star"/></svg></button>
+    </div>${open === r.id ? detailHtml(r) : ''}</li>`;
+  }
+  if (last) html += '</ul>';
+  $('list').innerHTML = html || (all.length ? '<p class="note">여기에 맞는 녹음이 없어요.</p>' : '');
+  if (open && list.some(r => r.id === open)) setupDetail(all.find(r => r.id === open));
+  storageNote();
+}
+const dayLabel = at => { const d = new Date(at), n = new Date(), y = new Date(n - 864e5); const same = (a, b) => a.toDateString() === b.toDateString(); return same(d, n) ? '오늘' : same(d, y) ? '어제' : `${d.getFullYear() !== n.getFullYear() ? d.getFullYear() + '년 ' : ''}${d.getMonth() + 1}월 ${d.getDate()}일`; };
+const timeOf = at => { const d = new Date(at); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+function detailHtml(r) {
+  return `<div class="detail">
+    <canvas class="ov" id="ov" aria-label="눌러서 그 자리로 이동"></canvas>
+    <div class="seek"><span id="pCur">00:00</span><input type="range" id="pSeek" min="0" max="1000" value="0" aria-label="재생 위치"><span>${fmt(r.dur)}</span></div>
+    <div class="row"><div class="seg" id="rate">${[[.5, '0.5×'], [.75, '0.75×'], [1, '1×'], [1.25, '1.25×']].map(([v, l]) => `<button data-r="${v}" class="${v === rate ? 'on' : ''}">${l}</button>`).join('')}</div><span class="spacer"></span><button class="btn" id="pitchBtn"><svg><use href="#i-chart"/></svg>음정 보기</button></div>
+    <div id="pitchBox" hidden><div class="stats" id="stats"></div><canvas class="graph" id="graph" aria-label="시간에 따른 음정 그래프. 누르면 그 자리부터 재생"></canvas><p class="note" id="pitchNote"></p></div>
+    <input class="tinput" id="rName" value="${esc(r.title)}" maxlength="80" aria-label="녹음 이름">
+    <div class="row">
+      <label class="sel" style="flex:1;min-width:180px;height:40px"><span>곡</span><select id="rScore"><option value="">없음</option>${scores.map(s => `<option value="${esc(s.id)}"${s.id === r.scoreId ? ' selected' : ''}>${esc(s.title)}</option>`).join('')}</select><svg><use href="#i-down"/></svg></label>
+      <button class="btn" id="rDl"><svg><use href="#i-save"/></svg>내려받기</button>
+      <button class="btn danger" id="rDel">삭제</button>
+    </div>
+  </div>`;
+}
+$('chips').onclick = e => { const b = e.target.closest('[data-f]'); if (!b) return; filter = b.dataset.f; render(); };
+$('list').onclick = async e => {
+  const li = e.target.closest('li[data-id]'); if (!li) return;
+  const id = li.dataset.id, r = all.find(x => x.id === id);
+  if (e.target.closest('[data-play]')) { togglePlay(id); return; }
+  if (e.target.closest('[data-fav]')) { const full = await DB.get(id); full.fav = !full.fav; await DB.put(full); render(); return; }
+  if (e.target.closest('[data-open]')) { open = open === id ? null : id; if (open && playingId !== id) stopPlayback(); render(); }
+};
+
+/* ---------- 재생 ---------- */
+const player = new Audio(); player.preload = 'auto'; player.setAttribute('playsinline', '');
+let playingId = null, rate = 1, curUrl = null, curDur = 0;
+async function loadInto(id) {
+  if (playingId === id) return true;
+  const r = await DB.get(id); if (!r) return false;
+  if (curUrl) URL.revokeObjectURL(curUrl);
+  curUrl = URL.createObjectURL(new Blob([r.data], { type: r.type }));
+  player.src = curUrl; playingId = id; curDur = r.dur || 0;
+  player.playbackRate = rate; if ('preservesPitch' in player) player.preservesPitch = true;
+  return true;
+}
+async function togglePlay(id) {
+  ac();
+  if (playingId === id && !player.paused) { player.pause(); return; }
+  if (!(await loadInto(id))) return;
+  player.play().catch(err => { console.error(err); toast('이 녹음은 이 브라우저에서 재생하지 못해요. 내려받아 들어 보세요'); });
+}
+function stopPlayback() { player.pause(); }
+function syncButtons() {
+  document.querySelectorAll('li[data-id] [data-play] use').forEach(u => {
+    const id = u.closest('li').dataset.id; u.setAttribute('href', playingId === id && !player.paused ? '#i-pause' : '#i-play');
+  });
+}
+player.addEventListener('play', syncButtons); player.addEventListener('pause', syncButtons); player.addEventListener('ended', syncButtons);
+player.addEventListener('loadedmetadata', () => { if (isFinite(player.duration) && player.duration > 0) curDur = player.duration; });
+player.addEventListener('timeupdate', () => {
+  if (!open || open !== playingId) return;
+  const d = curDur || player.duration || 1;
+  if ($('pCur')) { $('pCur').textContent = fmt(player.currentTime); if (!seeking) $('pSeek').value = Math.round(player.currentTime / d * 1000); }
+  drawOverview(); drawGraph();
+});
+
+/* ---------- 펼친 녹음 ---------- */
+let seeking = false, ovPeaks = null, pitch = null, openRec = null;
+async function setupDetail(meta) {
+  openRec = meta; ovPeaks = null; pitch = null;
+  $('pSeek').oninput = async () => { seeking = true; await loadInto(meta.id); const d = curDur || meta.dur; player.currentTime = $('pSeek').value / 1000 * d; $('pCur').textContent = fmt(player.currentTime); drawOverview(); };
+  $('pSeek').onchange = () => { seeking = false; };
+  $('rate').onclick = e => { const b = e.target.closest('[data-r]'); if (!b) return; rate = +b.dataset.r; player.playbackRate = rate; $('rate').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); };
+  $('rName').onchange = async () => { const r = await DB.get(meta.id); r.title = $('rName').value.trim() || r.title; await DB.put(r); render(); };
+  $('rScore').onchange = async () => { const r = await DB.get(meta.id); const s = scores.find(x => x.id === $('rScore').value); r.scoreId = s?.id || ''; r.scoreTitle = s?.title || ''; await DB.put(r); render(); };
+  $('rDl').onclick = async () => {
+    const r = await DB.get(meta.id), ext = (r.type.split('/')[1] || 'webm').replace('mpeg', 'mp3').replace('x-m4a', 'm4a').replace('mp4', 'm4a');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([r.data], { type: r.type })); a.download = `${r.title.replace(/[\\/:*?"<>|]/g, '_')}.${ext}`;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  };
+  armDanger($('rDel'), '한 번 더 누르면 삭제', async () => {
+    if (playingId === meta.id) { player.pause(); player.removeAttribute('src'); playingId = null; }
+    await DB.del(meta.id); open = null; await render(); toast('녹음을 지웠어요');
+  });
+  $('pitchBtn').onclick = () => runPitch(meta);
+  $('ov').onclick = e => seekTo(meta, e);
+  $('graph').onclick = e => seekTo(meta, e, G.L, G.R);
+  // 전체 모양(물결)은 펼칠 때 한 번 계산
+  try {
+    const r = await DB.get(meta.id);
+    const ab = await ac().decodeAudioData(r.data.slice(0));
+    if (openRec !== meta) return;
+    if (!meta.dur || Math.abs(meta.dur - ab.duration) > .5) { curDur = ab.duration; }
+    const x = ab.getChannelData(0), n = 160, step = Math.floor(x.length / n) || 1; ovPeaks = [];
+    for (let i = 0; i < n; i++) { let p = 0; for (let j = i * step, e = Math.min(x.length, j + step); j < e; j += 4) p = Math.max(p, Math.abs(x[j])); ovPeaks.push(p); }
+    const mx = Math.max(.05, ...ovPeaks); ovPeaks = ovPeaks.map(p => p / mx);
+    drawOverview();
+    if (meta.pitch) runPitch(meta, ab);
+  } catch (e) { console.warn(e); drawOverview(); }
+}
+async function seekTo(meta, e, L = 0, R = 0) {
+  const r = e.currentTarget.getBoundingClientRect(), f = Math.max(0, Math.min(1, (e.clientX - r.left - L) / (r.width - L - R)));
+  await loadInto(meta.id); player.currentTime = f * (curDur || meta.dur); player.play().catch(() => {});
+}
+function drawOverview() {
+  const cv = $('ov'); if (!cv) return;
+  const w = cv.clientWidth, h = cv.clientHeight, dpr = devicePixelRatio || 1;
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const d = curDur || openRec?.dur || 1, pos = playingId === openRec?.id ? player.currentTime / d : 0;
+  if (!ovPeaks) { g.fillStyle = css('--line'); g.fillRect(0, h / 2 - .5, w, 1); return; }
+  const n = ovPeaks.length, bw = w / n;
+  ovPeaks.forEach((p, i) => { const a = Math.max(2, p * (h - 6)); g.fillStyle = i / n < pos ? css('--accent') : css('--line'); g.fillRect(i * bw + .5, (h - a) / 2, Math.max(1, bw - 1.5), a); });
+}
+
+/* ---------- 음정 분석 (예전 연습 앱의 방식 그대로: YIN으로 음높이를 찾고 가까운 음에서 몇 cent 벗어났는지) ---------- */
+const NAMES = ['C', 'C♯', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'B♭', 'B'];
+const KN = ['도', '도♯', '레', '미♭', '미', '파', '파♯', '솔', '솔♯', '라', '시♭', '시'];
+const a4 = () => store.get('a4', 440);
+async function runPitch(meta, ab) {
+  $('pitchBox').hidden = false; $('pitchBtn').hidden = true;
+  $('pitchNote').textContent = '음정을 살펴보는 중…'; $('stats').innerHTML = '';
+  try {
+    if (!ab) { const r = await DB.get(meta.id); ab = await ac().decodeAudioData(r.data.slice(0)); }
+    const pts = await analyze(ab, p => { if ($('pitchNote')) $('pitchNote').textContent = `음정을 살펴보는 중… ${Math.round(p * 100)}%`; });
+    if (openRec !== meta) return;
+    pitch = { pts, dur: ab.duration };
+    const sum = summarize(pts);
+    drawGraph();
+    if (sum && !meta.pitch) { const r = await DB.get(meta.id); r.pitch = { p10: sum.p10, p25: sum.p25 }; await DB.put(r); meta.pitch = r.pitch; }
+  } catch (e) { console.warn(e); $('pitchNote').textContent = '이 녹음은 음정을 살펴보지 못했어요.'; }
+}
+async function analyze(ab, prog) {
+  const sr = ab.sampleRate, x = ab.getChannelData(0), W = 1024, hop = Math.round(sr * .03);
+  const tMin = Math.floor(sr / 2000), tMax = Math.ceil(sr / 170), d = new Float32Array(tMax + 2), out = [];
+  for (let off = 0, k = 0; off + W + tMax + 2 < x.length; off += hop, k++) {
+    if (k % 150 === 0) { prog(off / x.length); await new Promise(r => setTimeout(r)); }
+    let e = 0; for (let i = 0; i < W; i++) e += x[off + i] * x[off + i];
+    if (Math.sqrt(e / W) < .015) continue;
+    let run = 0; d[0] = 1;
+    for (let t = 1; t <= tMax + 1; t++) {
+      let s = 0; for (let i = 0; i < W; i++) { const v = x[off + i] - x[off + i + t]; s += v * v; }
+      run += s; d[t] = run ? s * t / run : 1;
+    }
+    let tau = -1;
+    for (let t = tMin; t <= tMax; t++) if (d[t] < .15) { while (t < tMax && d[t + 1] < d[t]) t++; tau = t; break; }
+    if (tau < 0) continue;
+    const a = d[tau - 1], b = d[tau], c = d[tau + 1], den = a + c - 2 * b;
+    const T = den ? tau + (a - c) / (2 * den) : tau, f = sr / T;
+    const midi = 69 + 12 * Math.log2(f / a4()), m = Math.round(midi);
+    out.push({ t: (off + W / 2) / sr, f, m, c: (midi - m) * 100 });
+  }
+  // 한 번만 튄 음(활 바꿈, 잡음)은 버림
+  return out.filter((p, i, A) => (A[i - 1] && A[i - 1].m === p.m && p.t - A[i - 1].t < .1) || (A[i + 1] && A[i + 1].m === p.m && A[i + 1].t - p.t < .1));
+}
+function summarize(pts) {
+  if (pts.length < 10) { $('pitchNote').textContent = '바이올린 소리를 거의 찾지 못했어요. 휴대폰을 악기 가까이 두고 다시 녹음해 보세요.'; return null; }
+  const n = pts.length, p10 = Math.round(pts.filter(p => Math.abs(p.c) <= 10).length / n * 100), p25 = Math.round(pts.filter(p => Math.abs(p.c) <= 25).length / n * 100);
+  $('stats').innerHTML = `<div class="stat"><span>±10 cent 안</span><b>${p10}%</b></div><div class="stat"><span>±25 cent 안</span><b>${p25}%</b></div><div class="stat"><span>찾은 음</span><b>${new Set(pts.map(p => p.m)).size}개</b></div>`;
+  const by = {};
+  pts.forEach(p => { const k = (p.m % 12 + 12) % 12; (by[k] ||= []).push(p.c); });
+  const off = Object.entries(by).filter(([, v]) => v.length >= 8).map(([k, v]) => [+k, v.reduce((s, c) => s + c, 0) / v.length])
+    .filter(([, v]) => Math.abs(v) >= 5).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 3);
+  $('pitchNote').textContent = off.length
+    ? `자주 벗어난 음: ${off.map(([k, v]) => `${KN[k]}(${NAMES[k]}) 평균 ${v > 0 ? '+' : ''}${Math.round(v)} cent ${v > 0 ? '높음' : '낮음'}`).join(', ')}. 그래프를 누르면 그 자리부터 들을 수 있어요.`
+    : '음마다 평균 음정이 ±5 cent 안이에요. 아주 안정적이에요.';
+  return { p10, p25 };
+}
+const G = { L: 34, R: 6, T: 8, B: 22 };
+function drawGraph() {
+  const cv = $('graph'); if (!cv || !pitch || $('pitchBox').hidden) return;
+  const w = cv.clientWidth, h = cv.clientHeight, dpr = devicePixelRatio || 1;
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const { L, R, T, B } = G, dur = pitch.dur || 1;
+  const y = c => T + (50 - Math.max(-50, Math.min(50, c))) / 100 * (h - T - B), xs = t => L + t / dur * (w - L - R);
+  g.globalAlpha = .12; g.fillStyle = css('--good'); g.fillRect(L, y(10), w - L - R, y(-10) - y(10)); g.globalAlpha = 1;
+  g.font = '10px Outfit, sans-serif'; g.fillStyle = css('--muted'); g.textAlign = 'right'; g.textBaseline = 'middle';
+  for (const c of [50, 25, 0, -25, -50]) { g.strokeStyle = css('--line'); g.lineWidth = c === 0 ? 1.5 : 1; g.beginPath(); g.moveTo(L, y(c)); g.lineTo(w - R, y(c)); g.stroke(); g.fillText((c > 0 ? '+' : '') + c, L - 6, y(c)); }
+  g.textAlign = 'center'; g.textBaseline = 'top';
+  const step = dur > 180 ? 60 : dur > 60 ? 15 : dur > 20 ? 5 : 2;
+  for (let t = 0; t <= dur; t += step) g.fillText(fmt(t), xs(t), h - B + 7);
+  for (const p of pitch.pts) { const a = Math.abs(p.c); g.fillStyle = css(a <= 10 ? '--good' : a <= 25 ? '--warn' : '--bad'); g.fillRect(xs(p.t) - 1.25, y(p.c) - 1.25, 2.5, 2.5); }
+  if (playingId === openRec?.id && player.currentTime) { g.strokeStyle = css('--accent'); g.lineWidth = 2; g.beginPath(); g.moveTo(xs(player.currentTime), T); g.lineTo(xs(player.currentTime), h - B); g.stroke(); }
+}
+addEventListener('resize', () => { drawWave(); drawOverview(); drawGraph(); });
+
+/* ---------- 기타 ---------- */
+function armDanger(btn, armedText, fn) {
+  let armed = false, t = 0; const orig = btn.textContent;
+  btn.onclick = () => {
+    if (armed) { clearTimeout(t); fn(); return; }
+    armed = true; btn.textContent = armedText; btn.classList.add('armed');
+    t = setTimeout(() => { armed = false; btn.textContent = orig; btn.classList.remove('armed'); }, 3000);
+  };
+}
+async function storageNote() {
+  const total = all.reduce((s, r) => s + (r.size || 0), 0);
+  let txt = all.length ? `녹음 ${all.length}개 · ${(total / 1048576).toFixed(1)}MB. 이 기기 안에만 있어요. 중요한 녹음은 내려받아 두세요.` : '';
+  $('storage').textContent = txt;
+}
+function requestPersist() { try { navigator.storage?.persist?.(); } catch {} }
+document.addEventListener('visibilitychange', async () => { if (document.visibilityState === 'visible' && mr) { try { wake = await navigator.wakeLock?.request('screen'); } catch {} } });
+addEventListener('beforeunload', e => { if (mr) { e.preventDefault(); e.returnValue = ''; } });
+
+(async () => {
+  drawWave();
+  try {
+    await loadScores();
+    const n = await importOld();
+    await render();
+    if (n) toast(`예전 연습 앱의 녹음 ${n}개를 옮겨 왔어요`);
+    if (q.get('score') && $('scoreSel').value) setHint(`'${$('scoreSel').selectedOptions[0].textContent}' 녹음 준비됐어요`);
+  } catch (e) { console.error(e); toast('이 브라우저에서는 기기 저장을 쓸 수 없어요'); }
+})();
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+</script>
+</body>
+</html>

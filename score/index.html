@@ -336,6 +336,7 @@ input[type=range].slider { flex: 1; min-width: 0; accent-color: #c9935f; height:
   <symbol id="b-up" viewBox="0 0 24 24"><path d="M6.5 5 12 19l5.5-14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="miter"/></symbol>
   <symbol id="i-metro" viewBox="0 0 24 24"><path d="M9.2 3.5h5.6l3.7 17H5.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 15.5 16.5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M7.5 15.5h9" stroke="currentColor" stroke-width="1.6"/></symbol>
   <symbol id="i-fork" viewBox="0 0 24 24"><path d="M8.5 3v7a3.5 3.5 0 0 0 7 0V3M12 13.5V21" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3.5" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6 11.5a6 6 0 0 0 12 0M12 17.5v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
   <symbol id="i-next" viewBox="0 0 24 24"><path d="M5 5.5v13l9-6.5zM16 5.5h2.5v13H16z" fill="currentColor"/></symbol>
 </svg>
 
@@ -401,6 +402,7 @@ input[type=range].slider { flex: 1; min-width: 0; accent-color: #c9935f; height:
   <nav class="family" aria-label="시리즈 앱">
     <a href="../tuner/"><img src="../tuner/icons/icon-192.png" alt="">튜너</a>
     <a href="../tempo/"><img src="../tempo/icons/icon-192.png" alt="">메트로놈</a>
+    <a href="../record/"><img src="../record/icons/icon-192.png" alt="">녹음</a>
   </nav>
 </div>
 
@@ -484,6 +486,7 @@ input[type=range].slider { flex: 1; min-width: 0; accent-color: #c9935f; height:
   <div class="vbar vbot">
     <button class="vbtn vtool" id="vMetro" aria-label="메트로놈"><svg><use href="#i-metro"/></svg><span id="vMetroTxt">템포</span></button>
     <button class="vbtn vtool" id="vTuner" aria-label="튜너 열기"><svg><use href="#i-fork"/></svg><span class="lbl">튜너</span></button>
+    <button class="vbtn vtool" id="vRec" aria-label="이 곡 녹음하기"><svg><use href="#i-mic"/></svg><span class="lbl">녹음</span></button>
     <span class="vpage" id="vPage">1 / 1</span>
     <input type="range" class="slider" id="vSlider" min="1" max="1" value="1" aria-label="쪽 이동">
     <button class="vbtn" id="vNext" hidden><svg><use href="#i-next"/></svg><span id="vNextName"></span></button>
@@ -1491,6 +1494,7 @@ $('#vMetro').addEventListener('pointerdown', () => { metroHold = setTimeout(() =
 ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => $('#vMetro').addEventListener(ev, () => { if (metroHold > 0) clearTimeout(metroHold); }));
 $('#vMetro').addEventListener('contextmenu', e => e.preventDefault());
 $('#vTuner').onclick = () => goSibling('tuner');
+$('#vRec').onclick = () => { if (V.score) goSibling('record', '?' + new URLSearchParams({ score: V.score.id })); };
 async function refreshFromSiblings() {
   const s = V.score; if (!s) return;
   const fresh = await DB.get('scores', s.id);
