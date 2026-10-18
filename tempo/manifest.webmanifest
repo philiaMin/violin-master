@@ -1,0 +1,17 @@
+{
+  "name": "메트로놈 · Violin Master",
+  "short_name": "메트로놈",
+  "description": "바이올린 마스터 시리즈의 메트로놈 앱. 강세, 템포 올리기 연습, 곡별 템포 저장.",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4efe8",
+  "theme_color": "#45130f",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

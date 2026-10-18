@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>메트로놈 · Violin Master</title>
+<meta name="description" content="바이올린 마스터 시리즈의 메트로놈 앱">
+<meta name="theme-color" content="#45130f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="메트로놈">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&family=Noto+Serif+KR:wght@600;700&family=Outfit:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: 한 열(최대 520px). 위에 로고줄과 큰 제목, 가운데 큰 다이얼(BPM)과 박 점,
+   그 아래 재생 단추와 박자·세분·소리, 그 아래 템포 올리기 연습과 저장한 템포. 강조색은 버건디 하나. */
+:root {
+  --bg: #f4efe8; --surface: #fffcf8; --surface-2: #f1e8dc; --line: #e2d6c7;
+  --ink: #2b1f16; --muted: #7c6b5c;
+  --accent: #8a2f2a; --accent-ink: #f6ecdc; --accent-soft: #f1dcd6; --glow: rgba(138,47,42,.3);
+  --shadow: 0 1px 2px rgba(62,36,18,.06), 0 10px 28px rgba(62,36,18,.08); --edge: transparent;
+  --f-body: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --f-title: "Noto Serif KR", "Nanum Myeongjo", Georgia, serif;
+  --f-num: "Outfit", "Noto Sans KR", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #14100d; --surface: #1d1814; --surface-2: #29221c; --line: #382e26; --ink: #f2e9df; --muted: #a8988a;
+  --accent: #df8a7c; --accent-ink: #2a0d0a; --accent-soft: #3a201b; --glow: rgba(223,138,124,.25);
+  --shadow: none; --edge: var(--line); color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #14100d; --surface: #1d1814; --surface-2: #29221c; --line: #382e26; --ink: #f2e9df; --muted: #a8988a;
+  --accent: #df8a7c; --accent-ink: #2a0d0a; --accent-soft: #3a201b; --glow: rgba(223,138,124,.25);
+  --shadow: none; --edge: var(--line); color-scheme: dark }
+* { box-sizing: border-box }
+html, body { margin: 0; background: var(--bg) }
+body { color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent }
+[hidden] { display: none !important }
+button, select, input { font: inherit; color: inherit }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.wrap { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(28px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)) }
+.top { padding-top: 8px }
+.lockup { display: flex; align-items: center; gap: 8px; margin: 0 0 2px; color: var(--accent); white-space: nowrap; text-decoration: none }
+.lockup svg { width: 10px; height: 20px }
+.lockup .wm { font: 600 11.5px Georgia, "Times New Roman", serif; letter-spacing: .3em }
+.lockup .lk-app { font-size: 12px; font-weight: 700; color: var(--muted); padding-left: 9px; border-left: 1px solid var(--line) }
+h1 { margin: 0; font-family: var(--f-title); font-size: 34px; font-weight: 700; letter-spacing: -.01em; line-height: 1.2 }
+h2 { margin: 0; font-family: var(--f-title); font-size: 17px; font-weight: 700 }
+.card { background: var(--surface); border: 1px solid var(--edge); border-radius: 22px; padding: 18px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 14px; min-width: 0 }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap }
+.spacer { flex: 1 }
+.note { font-size: 13px; color: var(--muted); margin: 0 }
+.btn { border: 0; background: var(--surface-2); font-weight: 700; font-size: 14px; padding: 0 16px; height: 42px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap }
+.btn.primary { background: var(--accent); color: var(--accent-ink) }
+.seg { display: inline-flex; background: var(--surface-2); border-radius: 999px; padding: 3px; gap: 2px; max-width: 100%; overflow-x: auto; scrollbar-width: none }
+.seg button { border: 0; background: transparent; height: 34px; min-width: 40px; padding: 0 12px; border-radius: 999px; font-weight: 700; font-size: 13px; color: var(--muted); cursor: pointer; white-space: nowrap; font-family: var(--f-num) }
+.seg button.on { background: var(--surface); color: var(--ink); box-shadow: 0 1px 4px rgba(0,0,0,.12) }
+.lbl { font-size: 12px; color: var(--muted); font-weight: 700; min-width: 34px }
+
+/* 곡에서 열었을 때 */
+.from { display: flex; align-items: center; gap: 10px; background: var(--accent-soft); border-radius: 16px; padding: 10px 12px }
+.from img { width: 30px; height: 30px; border-radius: 7px }
+.from .t { flex: 1; min-width: 0 }
+.from b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--f-title) }
+.from small { color: var(--muted); font-size: 12px }
+@media (max-width: 400px) { .from { flex-wrap: wrap } .from .t { flex-basis: calc(100% - 40px) } }
+
+/* 다이얼 */
+.stagecard { align-items: center; padding: 26px 18px 22px; gap: 18px }
+.dial { position: relative; width: 250px; height: 250px; display: grid; place-items: center; touch-action: none; cursor: ns-resize; user-select: none; -webkit-user-select: none }
+.dial svg { position: absolute; inset: 0; width: 100%; height: 100% }
+.dial .pulse { position: absolute; inset: 18px; border-radius: 50%; background: var(--accent); opacity: 0; transform: scale(.92) }
+.dial .pulse.go { animation: pulse .32s ease-out }
+.dial .pulse.go.strong { animation: pulse-strong .38s ease-out }
+@keyframes pulse { 0% { opacity: .12; transform: scale(1) } 100% { opacity: 0; transform: scale(.92) } }
+@keyframes pulse-strong { 0% { opacity: .26; transform: scale(1.02) } 100% { opacity: 0; transform: scale(.92) } }
+.bpm { position: relative; display: flex; flex-direction: column; align-items: center }
+.bpm .num { font-family: var(--f-num); font-size: 84px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.02em }
+.bpm .unit { font-size: 12px; color: var(--muted); font-weight: 700; letter-spacing: .14em }
+.bpm .mark { font-size: 16px; color: var(--accent); font-style: italic; font-weight: 500; margin-top: 6px; font-family: Georgia, "Times New Roman", serif }
+.beats { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap }
+.beat { width: 30px; height: 30px; border-radius: 50%; border: 0; padding: 0; cursor: pointer; background: transparent; display: grid; place-items: center }
+.beat i { display: block; border-radius: 50%; background: var(--surface-2); transition: transform .06s, background .06s }
+.beat[data-a="2"] i { width: 20px; height: 20px; box-shadow: inset 0 0 0 2px var(--accent) }
+.beat[data-a="1"] i { width: 14px; height: 14px }
+.beat[data-a="0"] i { width: 10px; height: 10px; background: transparent; box-shadow: inset 0 0 0 1.5px var(--line) }
+.beat.lit i { background: var(--ink); transform: scale(1.25) }
+.beat.lit[data-a="2"] i { background: var(--accent) }
+.controls { display: flex; align-items: center; justify-content: center; gap: 20px }
+.round { width: 54px; height: 54px; border-radius: 50%; border: 0; background: var(--surface-2); cursor: pointer; font-weight: 700; font-size: 22px; font-family: var(--f-num) }
+.play { width: 82px; height: 82px; border-radius: 50%; border: 0; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; cursor: pointer; box-shadow: 0 10px 26px var(--glow) }
+.play svg { width: 32px; height: 32px }
+input[type=range] { width: 100%; accent-color: var(--accent) }
+.opts { display: grid; gap: 10px; width: 100% }
+.opts .row { flex-wrap: nowrap }
+
+/* 연습 · 저장 */
+.switch { position: relative; width: 50px; height: 30px; flex: none }
+.switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer }
+.switch span { position: absolute; inset: 0; border-radius: 999px; background: var(--surface-2); transition: background .2s; pointer-events: none }
+.switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .2s }
+.switch input:checked + span { background: var(--accent) }
+.switch input:checked + span::after { transform: translateX(20px) }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); font-weight: 700 }
+.field input { height: 42px; border-radius: 12px; border: 0; background: var(--surface-2); padding: 0 10px; font-family: var(--f-num); font-size: 17px; font-weight: 600; width: 100%; min-width: 0 }
+.prog { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden }
+.prog i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .3s }
+.presets { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column }
+.presets li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line) }
+.presets li:last-child { border-bottom: 0 }
+.presets button.load { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; background: none; border: 0; padding: 0; cursor: pointer; text-align: left }
+.presets .n { font-family: var(--f-num); font-weight: 600; font-size: 22px; width: 52px; color: var(--accent); font-variant-numeric: tabular-nums }
+.presets .t { min-width: 0 }
+.presets .t b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.presets .t small { color: var(--muted); font-size: 12px }
+.x { width: 32px; height: 32px; border-radius: 50%; border: 0; background: var(--surface-2); cursor: pointer; color: var(--muted); font-size: 16px }
+.save { display: flex; gap: 8px }
+.save input { flex: 1; min-width: 0; height: 42px; border-radius: 12px; border: 0; background: var(--surface-2); padding: 0 12px }
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%) translateY(10px); background: #2b1f16; color: #fffaf3; padding: 11px 18px; border-radius: 14px; font-size: 14px; opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; max-width: calc(100vw - 32px); text-align: center; z-index: 9 }
+.toast.show { opacity: 1; transform: translateX(-50%) }
+.family { display: flex; justify-content: center; gap: 18px; font-size: 13px; color: var(--muted) }
+.family a { color: inherit; text-decoration: none; display: inline-flex; align-items: center; gap: 6px }
+.family img { width: 22px; height: 22px; border-radius: 5px }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="fhole" viewBox="0 0 24 48">
+    <path d="M16.2 8.2C12.6 13.6 16.6 19.4 12 24s-.6 10.6-4.2 15.8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
+    <circle cx="16.6" cy="6" r="3" fill="currentColor"/><circle cx="7.4" cy="42" r="3" fill="currentColor"/>
+    <path d="M8.4 22.6l-3 1.2M15.6 25.4l3-1.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="2" fill="currentColor"/></symbol>
+</svg>
+
+<main class="wrap">
+  <header class="top">
+    <a class="lockup" href="../"><svg aria-hidden="true"><use href="#fhole"/></svg><span class="wm">VIOLIN MASTER</span><span class="lk-app">메트로놈</span></a>
+    <h1>메트로놈</h1>
+  </header>
+
+  <div class="from" id="from" hidden>
+    <img src="../score/icons/icon-192.png" alt="">
+    <div class="t"><b id="fromTitle"></b><small id="fromSub">악보에서 열었어요</small></div>
+    <button class="btn primary" id="fromSave">이 곡 템포로 저장</button>
+    <a class="btn" href="../score/" aria-label="악보로 돌아가기" style="text-decoration:none;padding:0 14px;color:var(--ink)">악보로</a>
+  </div>
+
+  <section class="card stagecard">
+    <div class="dial" id="dial" aria-label="위아래로 밀어서 템포 바꾸기">
+      <svg viewBox="0 0 250 250" aria-hidden="true">
+        <circle cx="125" cy="125" r="116" fill="none" stroke="var(--surface-2)" stroke-width="2"/>
+        <circle id="arc" cx="125" cy="125" r="116" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" transform="rotate(-90 125 125)" stroke-dasharray="728.85" stroke-dashoffset="728.85"/>
+        <circle cx="125" cy="125" r="100" fill="var(--surface-2)" opacity=".55"/>
+      </svg>
+      <div class="pulse" id="pulse"></div>
+      <div class="bpm"><span class="num" id="bpmNum">72</span><span class="unit">BPM</span><span class="mark" id="bpmMark">Andante</span></div>
+    </div>
+    <div class="beats" id="beats" aria-label="박 강세 (점을 누르면 강·보통·쉼으로 바뀌어요)"></div>
+    <input type="range" id="bpm" min="30" max="240" value="72" aria-label="템포 (BPM)">
+    <div class="controls">
+      <button class="round" id="minus" aria-label="1 느리게">−</button>
+      <button class="play" id="playBtn" aria-label="시작"><svg><use href="#i-play"/></svg></button>
+      <button class="round" id="plus" aria-label="1 빠르게">+</button>
+    </div>
+    <div class="row" style="justify-content:center"><button class="btn" id="tap">탭 템포</button></div>
+    <div class="opts">
+      <div class="row"><span class="lbl">박자</span><div class="seg" id="meterSeg"></div></div>
+      <div class="row"><span class="lbl">세분</span><div class="seg" id="subSeg"></div></div>
+      <div class="row"><span class="lbl">소리</span><div class="seg" id="soundSeg"></div></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="row"><div><h2>템포 올리기 연습</h2><p class="note">몇 마디마다 조금씩 빨라져요</p></div><span class="spacer"></span><label class="switch"><input type="checkbox" id="trainOn" aria-label="템포 올리기 연습"><span></span></label></div>
+    <div class="grid3">
+      <label class="field">목표 BPM<input type="number" id="trainTo" inputmode="numeric" min="30" max="240" value="96"></label>
+      <label class="field">몇 마디마다<input type="number" id="trainBars" inputmode="numeric" min="1" max="32" value="4"></label>
+      <label class="field">몇씩 올릴까<input type="number" id="trainStep" inputmode="numeric" min="1" max="20" value="2"></label>
+    </div>
+    <div class="prog"><i id="trainProg"></i></div>
+    <p class="note" id="trainMsg">켜고 시작하면 지금 템포에서 목표까지 올라가요.</p>
+  </section>
+
+  <section class="card">
+    <h2>저장한 템포</h2>
+    <ul class="presets" id="presets"></ul>
+    <p class="note" id="presetsEmpty">자주 쓰는 템포를 이름과 함께 저장해 두세요.</p>
+    <div class="save"><input id="presetName" placeholder="예: 비발디 a단조 1악장" maxlength="60"><button class="btn primary" id="presetAdd">저장</button></div>
+  </section>
+
+  <nav class="family" aria-label="시리즈 앱">
+    <a href="../score/"><img src="../score/icons/icon-192.png" alt="">악보</a>
+    <a href="../tuner/"><img src="../tuner/icons/icon-192.png" alt="">튜너</a>
+  </nav>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('vm:' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('vm:' + k, JSON.stringify(v)); } catch {} }
+};
+let toastT;
+function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2400); }
+let ctx = null;
+const ac = () => { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); return ctx; };
+
+/* ---------- 설정 ----------
+   강세: 2 = 강, 1 = 보통, 0 = 쉼. 박 점을 누르면 바뀌어요. */
+const METERS = { '2/4': [2, 1], '3/4': [2, 1, 1], '4/4': [2, 1, 1, 1], '5/4': [2, 1, 1, 2, 1], '6/8': [2, 1, 1, 2, 1, 1] };
+const SUBS = [[1, '4분'], [2, '8분'], [3, '셋잇단'], [4, '16분']];
+const SOUNDS = [['click', '클릭'], ['wood', '나무'], ['bell', '벨']];
+const MARKS = [[40, 'Grave'], [60, 'Largo'], [66, 'Larghetto'], [76, 'Adagio'], [108, 'Andante'], [120, 'Moderato'], [156, 'Allegro'], [176, 'Vivace'], [200, 'Presto'], [999, 'Prestissimo']];
+const S = Object.assign({ bpm: 72, meter: '4/4', accents: null, sub: 1, sound: 'click' }, store.get('tempo', {}));
+if (!METERS[S.meter]) S.meter = '4/4';
+if (!Array.isArray(S.accents) || S.accents.length !== METERS[S.meter].length) S.accents = [...METERS[S.meter]];
+const save = () => store.set('tempo', S);
+
+// 악보 앱에서 열었을 때: ?score=곡id&title=…&bpm=…&meter=…
+const q = new URLSearchParams(location.search);
+const fromScore = q.get('score');
+if (q.get('bpm')) S.bpm = +q.get('bpm');
+if (q.get('meter') && METERS[q.get('meter')]) { S.meter = q.get('meter'); S.accents = [...METERS[S.meter]]; }
+
+function setBpm(v, quiet) {
+  S.bpm = Math.max(30, Math.min(240, Math.round(v)));
+  $('bpm').value = S.bpm; $('bpmNum').textContent = S.bpm;
+  $('bpmMark').textContent = MARKS.find(([lim]) => S.bpm < lim)[1];
+  $('arc').setAttribute('stroke-dashoffset', 728.85 * (1 - (S.bpm - 30) / 210));
+  if (!quiet) save();
+}
+function seg(el, items, cur, onPick) {
+  el.innerHTML = items.map(([v, l]) => `<button data-v="${esc(v)}" class="${String(v) === String(cur) ? 'on' : ''}">${esc(l)}</button>`).join('');
+  el.onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; onPick(b.dataset.v); };
+}
+function renderOpts() {
+  seg($('meterSeg'), Object.keys(METERS).map(k => [k, k]), S.meter, v => { S.meter = v; S.accents = [...METERS[v]]; beat = 0; save(); renderOpts(); });
+  seg($('subSeg'), SUBS, S.sub, v => { S.sub = +v; sub = 0; save(); renderOpts(); });
+  seg($('soundSeg'), SOUNDS, S.sound, v => { S.sound = v; save(); renderOpts(); click(ac().currentTime + .02, 2); });
+  drawBeats(-1);
+}
+function drawBeats(lit) {
+  $('beats').innerHTML = S.accents.map((a, i) => `<button class="beat${i === lit ? ' lit' : ''}" data-i="${i}" data-a="${a}" aria-label="${i + 1}박 ${['쉼', '보통', '강'][a]}"><i></i></button>`).join('');
+}
+$('beats').addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (!b) return; const i = +b.dataset.i; S.accents[i] = (S.accents[i] + 2) % 3; save(); drawBeats(-1); });
+
+/* ---------- 소리 ---------- */
+function click(t, level) { // level: 2 강, 1 보통, 0.5 세분
+  const c = ctx, g = c.createGain(), o = c.createOscillator();
+  const vol = level === 2 ? .7 : level === 1 ? .45 : .2; let end;
+  if (S.sound === 'bell') {
+    o.type = 'sine'; o.frequency.value = level === 2 ? 1760 : level === 1 ? 1320 : 990;
+    g.gain.setValueAtTime(vol * .8, t); g.gain.exponentialRampToValueAtTime(.0001, t + .25);
+    o.connect(g); end = t + .26;
+  } else if (S.sound === 'wood') {
+    o.type = 'triangle'; const f0 = level === 2 ? 1250 : level === 1 ? 900 : 700;
+    o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f0 * .6, t + .04);
+    const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f0; bp.Q.value = 3;
+    g.gain.setValueAtTime(vol * 1.4, t); g.gain.exponentialRampToValueAtTime(.0001, t + .07);
+    o.connect(bp); bp.connect(g); end = t + .08;
+  } else {
+    o.type = 'square'; o.frequency.value = level === 2 ? 1600 : level === 1 ? 1000 : 700;
+    g.gain.setValueAtTime(vol * .5, t); g.gain.exponentialRampToValueAtTime(.0001, t + .04);
+    o.connect(g); end = t + .05;
+  }
+  g.connect(c.destination); o.start(t); o.stop(end);
+}
+
+/* ---------- 박 맞추기 (앞으로 0.12초를 미리 예약해서 박이 밀리지 않게) ---------- */
+let playing = false, nextTime = 0, beat = 0, sub = 0, timer = 0, bars = 0, wake = null;
+function schedule() {
+  while (nextTime < ctx.currentTime + .12) {
+    const b = beat, s = sub, a = S.accents[b];
+    if (s === 0 && a > 0) click(nextTime, a);
+    else if (s > 0 && a > 0) click(nextTime, .5);
+    if (s === 0) {
+      const d = Math.max(0, (nextTime - ctx.currentTime) * 1000);
+      setTimeout(() => { if (!playing) return; drawBeats(b); if (a > 0) flash(a === 2); }, d);
+    }
+    nextTime += 60 / S.bpm / S.sub;
+    if (++sub >= S.sub) { sub = 0; if (++beat >= S.accents.length) { beat = 0; barDone(); } }
+  }
+}
+function flash(strong) { const p = $('pulse'); p.className = 'pulse'; void p.offsetWidth; p.className = 'pulse go' + (strong ? ' strong' : ''); }
+async function start() {
+  ac(); playing = true; beat = 0; sub = 0; bars = 0; nextTime = ctx.currentTime + .06;
+  timer = setInterval(schedule, 25); schedule();
+  $('playBtn').innerHTML = '<svg><use href="#i-stop"/></svg>'; $('playBtn').setAttribute('aria-label', '정지');
+  if ($('trainOn').checked) trainStart();
+  try { wake = await navigator.wakeLock?.request('screen'); } catch {}
+}
+function stop() {
+  playing = false; clearInterval(timer);
+  $('playBtn').innerHTML = '<svg><use href="#i-play"/></svg>'; $('playBtn').setAttribute('aria-label', '시작');
+  drawBeats(-1); try { wake?.release(); } catch {} wake = null;
+  if (train) { setBpm(train.from); train = null; trainUi(); }
+}
+$('playBtn').onclick = () => playing ? stop() : start();
+document.addEventListener('keydown', e => { if (e.code === 'Space' && !e.target.closest('input')) { e.preventDefault(); playing ? stop() : start(); } });
+document.addEventListener('visibilitychange', async () => { if (document.visibilityState === 'visible' && playing) { try { wake = await navigator.wakeLock?.request('screen'); } catch {} } });
+
+$('bpm').oninput = e => setBpm(+e.target.value);
+$('minus').onclick = () => setBpm(S.bpm - 1); $('plus').onclick = () => setBpm(S.bpm + 1);
+let taps = [];
+$('tap').onclick = () => {
+  const now = performance.now(); taps = taps.filter(t => now - t < 2500); taps.push(now);
+  if (taps.length >= 2) setBpm(60000 / ((taps[taps.length - 1] - taps[0]) / (taps.length - 1)));
+  else toast('박에 맞춰 몇 번 더 눌러 주세요');
+};
+// 다이얼을 위아래로 밀면 템포가 바뀌어요 (6px에 1씩)
+let drag = null;
+$('dial').addEventListener('pointerdown', e => { drag = { y: e.clientY, b: S.bpm }; $('dial').setPointerCapture(e.pointerId); });
+$('dial').addEventListener('pointermove', e => { if (drag) setBpm(drag.b + (drag.y - e.clientY) / 6, true); });
+$('dial').addEventListener('pointerup', () => { if (drag) { drag = null; save(); } });
+$('dial').addEventListener('wheel', e => { e.preventDefault(); setBpm(S.bpm + (e.deltaY < 0 ? 1 : -1)); }, { passive: false });
+
+/* ---------- 템포 올리기 연습 ---------- */
+let train = null;
+const T = store.get('train', { to: 96, bars: 4, step: 2 });
+$('trainTo').value = T.to; $('trainBars').value = T.bars; $('trainStep').value = T.step;
+['trainTo', 'trainBars', 'trainStep'].forEach(id => $(id).addEventListener('change', () => { store.set('train', { to: +$('trainTo').value, bars: +$('trainBars').value, step: +$('trainStep').value }); }));
+$('trainOn').onchange = () => { if (!$('trainOn').checked && train) { setBpm(train.from); train = null; } else if ($('trainOn').checked && playing) trainStart(); trainUi(); };
+function trainStart() {
+  const to = Math.max(30, Math.min(240, +$('trainTo').value || S.bpm));
+  train = { from: S.bpm, to, every: Math.max(1, +$('trainBars').value || 4), step: Math.max(1, +$('trainStep').value || 2) * (to >= S.bpm ? 1 : -1) };
+  trainUi();
+}
+function barDone() {
+  bars++;
+  if (!train || bars % train.every) return;
+  const up = train.step > 0, next = S.bpm + train.step;
+  const reached = up ? next >= train.to : next <= train.to;
+  setBpm(reached ? train.to : next, true);
+  setTimeout(trainUi, 0);
+}
+function trainUi() {
+  if (!train) { $('trainProg').style.width = '0'; $('trainMsg').textContent = $('trainOn').checked ? '시작하면 지금 템포에서 목표까지 올라가요. 멈추면 처음 템포로 돌아와요.' : '켜고 시작하면 지금 템포에서 목표까지 올라가요.'; return; }
+  const span = Math.abs(train.to - train.from) || 1, done = Math.abs(S.bpm - train.from);
+  $('trainProg').style.width = Math.min(100, done / span * 100) + '%';
+  $('trainMsg').textContent = S.bpm === train.to ? `목표 ${train.to}에 닿았어요. 이 빠르기로 계속 연습해요.` : `${train.from} → ${train.to} · 지금 ${S.bpm} · ${train.every}마디마다 ${Math.abs(train.step)}씩`;
+}
+
+/* ---------- 저장한 템포 ---------- */
+let presets = store.get('presets', []);
+function renderPresets() {
+  $('presetsEmpty').hidden = presets.length > 0;
+  $('presets').innerHTML = presets.map((p, i) => `<li><button class="load" data-i="${i}"><span class="n">${p.bpm}</span><span class="t"><b>${esc(p.name)}</b><small>${esc(p.meter)} · ${MARKS.find(([l]) => p.bpm < l)[1]}</small></span></button><button class="x" data-del="${i}" aria-label="${esc(p.name)} 지우기">×</button></li>`).join('');
+}
+$('presets').addEventListener('click', e => {
+  const d = e.target.closest('[data-del]'); if (d) { presets.splice(+d.dataset.del, 1); store.set('presets', presets); renderPresets(); return; }
+  const l = e.target.closest('[data-i]'); if (!l) return;
+  const p = presets[+l.dataset.i]; S.meter = p.meter; S.accents = [...(p.accents || METERS[p.meter])]; setBpm(p.bpm); save(); renderOpts();
+  toast(`${p.name} · ${p.bpm}`);
+});
+$('presetAdd').onclick = () => {
+  const name = $('presetName').value.trim() || `${S.bpm} BPM`;
+  presets.unshift({ name, bpm: S.bpm, meter: S.meter, accents: [...S.accents] }); presets = presets.slice(0, 50);
+  store.set('presets', presets); $('presetName').value = ''; renderPresets(); toast('저장했어요');
+};
+$('presetName').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) $('presetAdd').click(); });
+
+/* ---------- 악보 앱과 잇기: 같은 주소(github.io)라서 악보 앱의 저장소를 직접 열 수 있어요 ---------- */
+function scoresDb() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('violin-sheets');
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    r.onupgradeneeded = () => { r.transaction.abort(); rej(new Error('악보 앱 저장소가 없어요')); };
+  });
+}
+async function scoreRec(id, patch) {
+  const d = await scoresDb();
+  return new Promise((res, rej) => {
+    const t = d.transaction('scores', patch ? 'readwrite' : 'readonly'), s = t.objectStore('scores'), g = s.get(id);
+    g.onsuccess = () => { const v = g.result; if (v && patch) { Object.assign(v, patch); s.put(v); } t.oncomplete = () => { d.close(); res(v); }; };
+    t.onerror = () => { d.close(); rej(t.error); };
+  });
+}
+if (fromScore) {
+  $('from').hidden = false;
+  $('fromTitle').textContent = q.get('title') || '악보';
+  $('fromSub').textContent = q.get('bpm') ? `저장된 템포 ${q.get('bpm')} · ${S.meter}` : '이 곡의 템포가 아직 없어요';
+  $('fromSave').onclick = async () => {
+    try { await scoreRec(fromScore, { bpm: S.bpm, meter: S.meter }); $('fromSub').textContent = `저장된 템포 ${S.bpm} · ${S.meter}`; toast('악보에 이 템포를 저장했어요'); }
+    catch (e) { console.error(e); toast('악보 앱에 저장하지 못했어요'); }
+  };
+}
+
+setBpm(S.bpm, true); renderOpts(); renderPresets(); trainUi();
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+</script>
+</body>
+</html>

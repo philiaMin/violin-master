@@ -1,0 +1,17 @@
+{
+  "name": "바이올린 마스터",
+  "short_name": "바이올린 마스터",
+  "description": "악보, 튜너, 메트로놈을 한곳에서. 바이올린 마스터 시리즈의 첫 화면.",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4efe8",
+  "theme_color": "#2b1f16",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
