@@ -1424,6 +1424,23 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 /* ---------- 시리즈 앱과 잇기 ----------
    메트로놈·튜너는 같은 주소(github.io) 아래 옆 폴더에 있어요. 메트로놈 앱이 이 곡의 템포를 저장하면
    여기 'scores' 저장소에 bpm·meter가 들어오므로, 돌아왔을 때 다시 읽어요. */
+/* 아이폰은 무음(벨소리) 스위치가 켜져 있으면 웹 소리를 꺼 버려요. 소리를 '음악 재생'으로 알려서 무음 모드에서도 나게 해요.
+   (iOS 17 이상은 audioSession, 그 아래는 소리 없는 오디오를 함께 틀어 두는 방법) */
+let silentEl = null;
+function unlockAudio(c) {
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch {}
+  if (!silentEl) {
+    const n = 800, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf), w = (o, s) => [...s].forEach((ch, i) => v.setUint8(o + i, ch.charCodeAt(0)));
+    w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, 8000, true); v.setUint32(28, 16000, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+    silentEl = new Audio(URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })));
+    silentEl.loop = true; silentEl.setAttribute('playsinline', '');
+  }
+  silentEl.play().catch(() => {});
+  // 옛 사파리는 손가락으로 누른 그 순간에 아주 짧은 소리를 한 번 내야 소리 장치가 열려요
+  try { const s = c.createBufferSource(); s.buffer = c.createBuffer(1, 1, 22050); s.connect(c.destination); s.start(0); } catch {}
+  if (c.state !== 'running') return c.resume().catch(() => {});
+}
 let metroHold = 0;
 const metro = { ctx: null, on: false, next: 0, beat: 0, timer: 0 };
 function metroStop() {
@@ -1433,7 +1450,7 @@ function metroStop() {
 function metroStart() {
   const s = V.score; if (!s?.bpm) return;
   metro.ctx ||= new (window.AudioContext || window.webkitAudioContext)();
-  if (metro.ctx.state === 'suspended') metro.ctx.resume();
+  unlockAudio(metro.ctx);
   metro.on = true; metro.beat = 0; metro.next = metro.ctx.currentTime + .06;
   const beats = { '2/4': 2, '3/4': 3, '4/4': 4, '5/4': 5, '6/8': 6 }[s.meter] || 4;
   const tick = () => {
