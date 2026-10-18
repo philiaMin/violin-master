@@ -66,6 +66,24 @@ h2 { margin: 0 0 6px; font-family: var(--f-title); font-size: 17px }
 :root[data-theme="dark"] .recent .bpm { color: #df8a7c; background: #3a201b }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .recent .bpm { color: #df8a7c; background: #3a201b } }
 .foot { text-align: center; color: var(--muted); font-size: 12px; margin: 0 }
+.card p { margin: 0 }
+.bk { display: flex; flex-direction: column; gap: 12px }
+.bk-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px }
+.bk-stats div { background: var(--surface-2); border-radius: 14px; padding: 10px 12px; min-width: 0 }
+.bk-stats span { display: block; font-size: 11.5px; color: var(--muted); font-weight: 700 }
+.bk-stats b { font-family: "Outfit", sans-serif; font-size: 19px; font-weight: 600; white-space: nowrap }
+.bk-row { display: flex; gap: 8px; flex-wrap: wrap }
+.btn { border: 0; background: var(--surface-2); color: var(--ink); font: 700 14px var(--f-body); padding: 0 16px; height: 42px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap }
+.btn.primary { background: var(--accent); color: #f6ecdc }
+:root[data-theme="dark"] .btn.primary { color: #1d1208 }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.primary { color: #1d1208 } }
+.btn:disabled { opacity: .5 }
+.check { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted) }
+.check input { width: 18px; height: 18px; accent-color: var(--accent) }
+.msg { font-size: 13px; color: var(--muted); min-height: 1em }
+.msg.warn { color: #b0482f; font-weight: 700 }
+.howto { margin: 0; padding-left: 20px; font-size: 14px; color: var(--muted); display: flex; flex-direction: column; gap: 4px }
+.howto b { color: var(--ink) }
 </style>
 </head>
 <body>
@@ -93,8 +111,36 @@ h2 { margin: 0 0 6px; font-family: var(--f-title); font-size: 17px }
     <ul class="recent" id="recent"></ul>
   </section>
 
+  <section class="card" id="installCard" hidden>
+    <h2>아이패드·아이폰에서 앱처럼 쓰기</h2>
+    <ol class="howto">
+      <li>사파리 주소창 옆 <b>공유 단추(□↑)</b>를 눌러요.</li>
+      <li><b>홈 화면에 추가</b>를 누르면 바이올린 마스터 아이콘이 생겨요.</li>
+      <li>앞으로는 그 아이콘으로 열어요. 네 앱이 한 창에서 이어지고, 저장한 것도 오래 안전하게 남아요.</li>
+    </ol>
+    <p class="note" style="font-size:13px;color:var(--muted)">홈 화면 앱은 사파리와 저장소가 따로예요. 사파리에서 넣어 둔 악보가 있으면 여기서 <b>백업</b>한 뒤, 홈 화면 앱에서 <b>불러오기</b>를 해 주세요.</p>
+  </section>
+
+  <section class="card bk" id="backupCard">
+    <h2>백업과 복원</h2>
+    <div class="bk-stats">
+      <div><span>악보</span><b id="bkScores">-</b></div>
+      <div><span>녹음</span><b id="bkRecs">-</b></div>
+      <div><span>마지막 백업</span><b id="bkLast">-</b></div>
+    </div>
+    <p class="msg" id="bkMsg">악보·보잉·세트리스트·곡 템포·녹음·설정을 파일 하나로 묶어요. 아이클라우드 드라이브에 두면 아이패드나 새 기기에서 그대로 불러올 수 있어요.</p>
+    <label class="check"><input type="checkbox" id="bkRecs2" checked> 녹음도 넣기</label>
+    <div class="bk-row">
+      <button class="btn primary" id="bkMake">백업 만들기</button>
+      <button class="btn primary" id="bkSave" hidden>아이클라우드에 저장</button>
+      <button class="btn" id="bkLoad">백업 불러오기</button>
+      <input type="file" id="bkFile" hidden>
+    </div>
+  </section>
+
   <p class="foot">모든 앱이 이 기기 안에 저장해요. 한 번 열어 두면 인터넷 없이도 열려요.</p>
 </main>
+<script src="backup.js"></script>
 <script>
 'use strict';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -121,6 +167,52 @@ document.getElementById('recent').addEventListener('click', e => {
   try { sessionStorage.setItem('vm-sheets:reopen', JSON.stringify({ id: a.dataset.id })); } catch {}
 });
 try { recent(); } catch {}
+
+/* ---------- 백업과 복원 (backup.js) ---------- */
+const $ = id => document.getElementById(id);
+const mb = n => n >= 1048576 ? (n / 1048576).toFixed(1) + 'MB' : Math.max(1, Math.round(n / 1024)) + 'KB';
+const ago = t => { if (!t) return '없음'; const d = Math.floor((Date.now() - t) / 864e5); return d <= 0 ? '오늘' : d === 1 ? '어제' : d + '일 전'; };
+async function refreshBk(first) {
+  try {
+    const s = await VMBackup.summary();
+    $('bkScores').textContent = s.scores + '곡'; $('bkRecs').textContent = s.recs + '개'; $('bkLast').textContent = ago(s.lastAt);
+    if (first && (s.scores || s.recs) && (!s.lastAt || Date.now() - s.lastAt > 14 * 864e5)) { $('bkMsg').textContent = '백업한 지 오래됐어요. 백업을 만들어 아이클라우드에 두면 기기를 잃어버려도 안전해요.'; $('bkMsg').className = 'msg warn'; }
+  } catch (e) { console.warn(e); }
+}
+let made = null;
+const msg = (t, warn) => { $('bkMsg').textContent = t; $('bkMsg').className = 'msg' + (warn ? ' warn' : ''); };
+$('bkMake').onclick = async () => {
+  $('bkMake').disabled = true; $('bkSave').hidden = true; msg('백업을 묶는 중…');
+  try {
+    made = await VMBackup.make({ withRecs: $('bkRecs2').checked, onProgress: n => msg(`백업을 묶는 중… ${n}개`) });
+    msg(`준비됐어요 · ${mb(made.blob.size)}. ${VMBackup.isIOS() ? '"아이클라우드에 저장"을 누르고 공유 창에서 파일에 저장 → iCloud Drive를 고르세요.' : '저장 단추를 누르면 파일로 내려받아요.'}`);
+    $('bkSave').textContent = VMBackup.isIOS() ? '아이클라우드에 저장' : '파일로 저장';
+    $('bkSave').hidden = false;
+  } catch (e) { console.error(e); msg(e.message || '백업을 만들지 못했어요', true); }
+  $('bkMake').disabled = false;
+};
+// 공유 창은 손가락으로 누른 바로 그때만 열리므로, 묶기와 저장을 두 번에 나눠요
+$('bkSave').onclick = async () => {
+  if (!made) return;
+  const r = await VMBackup.save(made);
+  if (r === 'cancelled') return;
+  msg(r === 'shared' ? '저장했어요. 아이패드에서는 이 화면의 "백업 불러오기"로 그 파일을 고르면 돼요.' : '파일을 내려받았어요. 아이클라우드 드라이브나 다른 곳에 옮겨 두세요.');
+  $('bkSave').hidden = true; made = null; refreshBk();
+};
+$('bkLoad').onclick = () => $('bkFile').click();
+$('bkFile').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  msg('불러오는 중…'); $('bkLoad').disabled = true;
+  try {
+    const r = await VMBackup.restore(f, { onProgress: () => msg('불러오는 중…') });
+    msg(r.scores || r.recs || r.settings ? `불러왔어요 · 악보 ${r.scores}곡, 녹음 ${r.recs}개를 더했어요. 이미 있던 것은 그대로 뒀어요.` : '새로 더할 것이 없어요. 이미 다 있어요.');
+    refreshBk(); try { recent(); } catch {}
+  } catch (err) { console.error(err); msg(err.message || '불러오지 못했어요', true); }
+  $('bkLoad').disabled = false;
+};
+if (VMBackup.isIOS() && !VMBackup.standalone()) $('installCard').hidden = false;
+try { navigator.storage?.persist?.(); } catch {}
+refreshBk(true);
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 </script>
 </body>

@@ -461,10 +461,10 @@ input[type=range].slider { flex: 1; min-width: 0; accent-color: #c9935f; height:
     <div class="stat"><span>쓰고 있는 공간</span><b id="stUsed">-</b></div>
     <div class="stat"><span>인터넷 없이 열기</span><b id="stOffline" style="font-size:14px">확인 중</b></div>
     <p class="note" id="stPersist"></p>
-    <p class="note">악보는 이 기기의 브라우저 안에 보관돼요. 브라우저의 사이트 데이터를 지우면 함께 지워지니, 가끔 백업 파일을 만들어 두세요. 새 기기에서는 백업 불러오기로 옮길 수 있어요.</p>
+    <p class="note">악보는 이 기기의 브라우저 안에 보관돼요. 브라우저의 사이트 데이터를 지우면 함께 지워지니, 가끔 백업해 두세요. 백업은 첫 화면에서 네 앱(악보·보잉·템포·녹음·설정)을 한 파일로 묶어 아이클라우드에 저장하고, 아이패드나 새 기기에서 그대로 불러와요.</p>
     <div class="row">
-      <button class="btn primary" id="backupBtn">백업 파일 만들기</button>
-      <button class="btn" id="restoreBtn">백업 불러오기</button>
+      <button class="btn primary" id="backupBtn">백업과 복원 열기</button>
+      <button class="btn" id="restoreBtn" hidden>백업 불러오기</button>
     </div>
   </div>
 </dialog>
@@ -1562,6 +1562,9 @@ $('#backupIn').addEventListener('change', async e => {
 });
 
 /* ---------- 시작 ---------- */
+// 백업은 첫 화면의 전체 백업으로 (예전 .json 백업도 거기서 불러와요)
+$('#backupBtn').onclick = () => { location.href = '../#backupCard'; };
+
 reload().then(() => {
   let r = null; try { r = JSON.parse(sessionStorage.getItem('vm-sheets:reopen')); sessionStorage.removeItem('vm-sheets:reopen'); } catch {}
   if (r && byId(r.id)) openViewer(r.id, { page: r.page });

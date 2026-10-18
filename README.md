@@ -13,11 +13,20 @@
 ## 올리는 방법 (GitHub Pages)
 
 1. GitHub에서 **+ → New repository**로 `violin-master` 저장소를 만들어요 (Public).
-2. **Add file → Upload files**에 이 폴더 안의 것을 **폴더째** 모두 끌어다 놓아요: `index.html`, `sw.js`, `manifest.webmanifest`, `icons`, `score`, `tuner`, `tempo`, `record`. **Commit changes**.
+2. **Add file → Upload files**에 이 폴더 안의 것을 **폴더째** 모두 끌어다 놓아요: `index.html`, `backup.js`, `sw.js`, `manifest.webmanifest`, `icons`, `score`, `tuner`, `tempo`, `record`. **Commit changes**.
 3. **Settings → Pages**에서 Branch를 **main / (root)**로 저장해요.
 4. 1~2분 뒤 `https://내아이디.github.io/violin-master/` 가 열려요.
 
 - 홈 화면에 추가할 때: 첫 화면을 추가하면 "바이올린 마스터" 하나로 모든 앱을 쓰고, 각 앱 주소(`…/score/`, `…/tuner/`, `…/tempo/`, `…/record/`)를 따로 추가하면 앱마다 아이콘이 생겨요. 둘 다 해도 괜찮아요.
+
+## 백업과 복원, 아이패드에서 쓰기
+
+- 첫 화면 **백업과 복원**: 악보·보잉·세트리스트·곡 템포·녹음·설정을 파일 하나(`.vmbackup`)로 묶어요. 아이폰·아이패드에서는 **아이클라우드에 저장 → 파일에 저장 → iCloud Drive**로 두면 돼요.
+- 다른 기기에서는 첫 화면 **백업 불러오기**로 그 파일을 골라요. 이미 있는 악보·녹음은 그대로 두고 없는 것만 더해요. 예전 악보 앱의 `.json` 백업도 받아요.
+- 아이패드에서는 첫 화면을 사파리에서 열고 **공유 → 홈 화면에 추가**를 한 뒤 그 아이콘으로 써요. 아이콘은 첫 화면 하나만 추가하는 걸 권해요(네 앱이 한 창에서 같은 저장소를 써요).
+- 홈 화면 앱은 사파리와 저장소가 따로예요. 사파리에서 쓰던 게 있으면 사파리에서 백업 → 홈 화면 앱에서 불러오기.
+- 자동 동기화는 아니에요. 기기를 바꿔 쓸 때마다 백업 → 불러오기를 해요.
+- `backup.js`를 고치면 첫 화면 `sw.js`의 `VERSION`을 올려요.
 
 ## 이미 쓰던 악보는 그대로예요
 
