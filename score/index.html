@@ -180,10 +180,12 @@ select.sort { flex: none; height: 34px; border-radius: 999px; border: 0; backgro
 /* 하단 탭바 */
 nav.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--bar); backdrop-filter: saturate(1.6) blur(18px); -webkit-backdrop-filter: saturate(1.6) blur(18px);
   border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px) }
-nav.tabbar .in { max-width: 360px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr }
-nav.tabbar button { border: 0; background: none; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 9px 0 8px; color: var(--muted); font-size: 11px; font-weight: 700; cursor: pointer }
+nav.tabbar .in { max-width: 520px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, 1fr) }
+nav.tabbar button, nav.tabbar a { border: 0; background: none; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 9px 0 8px; color: var(--muted); font-size: 11px; font-weight: 700; cursor: pointer; text-decoration: none; white-space: nowrap; min-width: 0 }
 nav.tabbar button svg { width: 24px; height: 24px }
 nav.tabbar button.on { color: var(--accent) }
+nav.tabbar a img { width: 24px; height: 24px; border-radius: 6px }
+nav.tabbar a.first { border-left: 1px solid var(--line) }
 
 /* 시트(대화상자) */
 dialog.sheet { border: 0; padding: 0; background: var(--surface); color: var(--ink); border-radius: 24px; width: min(520px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); box-shadow: 0 20px 60px rgba(0,0,0,.35) }
@@ -398,18 +400,16 @@ input[type=range].slider { flex: 1; min-width: 0; accent-color: #c9935f; height:
       </div>
     </div>
   </section>
-
-  <nav class="family" aria-label="시리즈 앱">
-    <a href="../tuner/"><img src="../tuner/icons/icon-192.png" alt="">튜너</a>
-    <a href="../tempo/"><img src="../tempo/icons/icon-192.png" alt="">메트로놈</a>
-    <a href="../record/"><img src="../record/icons/icon-192.png" alt="">녹음</a>
-  </nav>
 </div>
 
+<!-- 튜너·메트로놈·녹음은 악보가 많아져도 늘 보이도록 아래 탭바에 함께 둬요 -->
 <nav class="tabbar" aria-label="화면">
   <div class="in">
     <button class="on" data-tab="lib"><svg aria-hidden="true"><use href="#i-lib"/></svg>서재</button>
     <button data-tab="set"><svg aria-hidden="true"><use href="#i-set"/></svg>세트리스트</button>
+    <a class="fam first" href="../tuner/"><img src="../tuner/icons/icon-192.png" alt="">튜너</a>
+    <a class="fam" href="../tempo/"><img src="../tempo/icons/icon-192.png" alt="">메트로놈</a>
+    <a class="fam" href="../record/"><img src="../record/icons/icon-192.png" alt="">녹음</a>
   </div>
 </nav>
 
